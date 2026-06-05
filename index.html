@@ -8,400 +8,130 @@
     <style>
         :root { --neon: #3b82f6; --bg: #050507; --panel: #121216; --track-bg: #1f1f23; --golden: #fbbf24; }
         body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: white; height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: fixed; width: 100%; user-select: none; }
-
         .app-header { background: var(--panel); padding: 12px 16px; display: flex; justify-content: space-between; border-bottom: 1px solid #333; font-weight: 600; font-size: 14px; align-items: center; }
         .btn-save { background: linear-gradient(90deg, #10b981, #059669); color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: 12px; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3); z-index: 100;}
-        .autosave-badge { font-size: 10px; color: #888; display: flex; align-items: center; gap: 5px; }
-        
         .preview-area { background: #000; display: flex; justify-content: center; padding: 10px; height: 30vh; border-bottom: 1px solid #333; position: relative; overflow: hidden; }
-        canvas { max-width: 100%; max-height: 100%; border-radius: 8px; background: #0a0a0a; cursor: crosshair; box-shadow: 0 0 20px rgba(0,0,0,0.8); transition: width 0.2s, height 0.2s; z-index: 10; display: block; }
-        
-        .status-rec { position: absolute; top: 15px; right: 20px; background: #ef4444; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; display: none; animation: pulse 1.5s infinite; z-index: 50; box-shadow: 0 0 10px #ef4444; }
-
-        .render-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 20; display: none; flex-direction: column; align-items: center; justify-content: center; color: var(--golden); font-weight: bold; }
-        .render-overlay i { font-size: 40px; margin-bottom: 10px; animation: spin 2s linear infinite; }
-
-        .live-director-panel { position: absolute; bottom: 20px; z-index: 50; display: none; flex-direction: column; align-items: center; background: rgba(0,0,0,0.8); padding: 10px 20px; border-radius: 12px; border: 2px solid #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); animation: pulse-border 1.5s infinite; }
-        .live-director-btn { background: var(--golden); color: black; font-weight: bold; font-size: 16px; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; margin-top: 5px; box-shadow: 0 4px 0px #b45309; transition: 0.1s; }
-        .live-director-btn:active { transform: translateY(4px); box-shadow: 0 0px 0px #b45309; }
-
+        canvas { max-width: 100%; max-height: 100%; border-radius: 8px; background: #0a0a0a; cursor: crosshair; box-shadow: 0 0 20px rgba(0,0,0,0.8); z-index: 10; display: block; }
+        .status-rec { position: absolute; top: 15px; right: 20px; background: #ef4444; padding: 6px 12px; border-radius: 4px; font-size: 11px; font-weight: bold; display: none; animation: pulse 1.5s infinite; z-index: 50; }
         .timeline-editor { background: var(--panel); display: flex; flex-direction: column; height: 32vh; border-bottom: 1px solid #333; }
         .timeline-toolbar { display: flex; gap: 15px; padding: 10px 12px; background: #000; font-size: 14px; align-items: center; border-bottom: 1px solid #222; }
         .action-btn { cursor: pointer; color: #a1a1aa; padding: 5px; transition: 0.2s; }
-        .action-btn:hover { color: white; transform: scale(1.1); }
-        .action-btn.active-play { color: #10b981; }
-
         .tracks-container { flex: 1; padding: 10px 0; overflow-x: auto; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; position: relative; scroll-behavior: smooth; }
         .track { height: 40px; background: var(--track-bg); display: flex; position: relative; min-width: 300vw; border-bottom: 1px solid #2a2a30; }
-        .track-label { position: sticky; left: 0; background: #0a0a0c; width: 45px; display: flex; justify-content: center; align-items: center; font-size: 10px; z-index: 30; border-right: 1px solid #444; flex-direction: column; color: #aaa; font-weight: bold; }
-        
-        .export-zone { position: absolute; top: 0; bottom: 0; background: rgba(16, 185, 129, 0.1); z-index: 5; pointer-events: none; border-top: 2px solid #10b981; border-bottom: 2px solid #eab308; }
-        .marker-in { position: absolute; top: 0; bottom: 0; width: 4px; background: #10b981; z-index: 35; cursor: ew-resize; }
-        .marker-in::before { content: 'INICIO'; position: absolute; top: -10px; left: 0; background: #10b981; font-size: 8px; padding: 2px 4px; border-radius: 2px; color: white; font-weight: bold; }
-        .marker-out { position: absolute; top: 0; bottom: 0; width: 4px; background: #eab308; z-index: 35; cursor: ew-resize; box-shadow: 0 0 10px rgba(234, 179, 8, 0.8); }
-        .marker-out::before { content: 'FIN DE VIDEO'; position: absolute; top: -10px; left: -30px; background: #eab308; font-size: 8px; padding: 2px 4px; border-radius: 2px; color: black; font-weight: bold; }
-
-        .playhead-container { position: absolute; top: 0; bottom: 0; left: 45px; width: 20px; z-index: 40; transform: translateX(-10px); cursor: ew-resize; }
-        .playhead-line { position: absolute; left: 10px; width: 2px; height: 100%; background: #ffffff; pointer-events: none; box-shadow: 0 0 5px rgba(0,0,0,0.5); }
-        .playhead-head { position: absolute; left: 5px; top: 0; width: 12px; height: 12px; background: #ffffff; clip-path: polygon(0 0, 100% 0, 50% 100%); pointer-events: none; }
-
-        .clip-block { position: absolute; height: 90%; top: 5%; background: linear-gradient(135deg, #2563eb, #3b82f6); border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 10px; font-weight: bold; opacity: 0.95; overflow: hidden; white-space: nowrap; border: 1px solid #60a5fa; box-shadow: 0 2px 5px rgba(0,0,0,0.5); z-index: 20; transition: width 0.1s, left 0.1s; text-shadow: 1px 1px 2px rgba(0,0,0,0.8); }
-        .clip-block.image { background: linear-gradient(135deg, #d97706, #f59e0b); border-color: #fbbf24; }
-        .clip-block.audio { background: linear-gradient(135deg, #059669, #10b981); border-color: #34d399; }
-        .clip-block.text { background: linear-gradient(135deg, #7c3aed, #8b5cf6); border-color: #a78bfa; }
-        .clip-block.selected { border: 2px solid white; opacity: 1; z-index: 25; box-shadow: 0 0 10px rgba(255,255,255,0.4); }
-        
-        .fx-badge { position: absolute; bottom: 2px; right: 15px; font-size: 8px; background: rgba(0,0,0,0.6); padding: 2px 4px; border-radius: 2px; display: none; color: var(--golden); }
-        .clip-block.has-fx .fx-badge { display: block; }
-        .resize-handle { position: absolute; right: 0; top: 0; bottom: 0; width: 15px; background: rgba(255,255,255,0.1); cursor: ew-resize; z-index: 30; border-left: 1px solid rgba(255,255,255,0.3); border-radius: 0 4px 4px 0; }
-        .drag-area { flex: 1; height: 100%; display: flex; align-items: center; cursor: grab; }
-        
-        .control-panel { flex: 1; display: flex; flex-direction: column; background: var(--bg); position: relative; }
-        .blocker-panel { position: absolute; top:0; bottom:0; left:0; right:0; background: rgba(0,0,0,0.6); z-index: 200; display: none; cursor: not-allowed; }
-        
+        .track-label { position: sticky; left: 0; background: #0a0a0c; width: 45px; display: flex; justify-content: center; align-items: center; font-size: 10px; z-index: 30; border-right: 1px solid #444; color: #aaa; font-weight: bold; }
+        .playhead-container { position: absolute; top: 0; bottom: 0; left: 45px; width: 20px; z-index: 40; cursor: ew-resize; }
+        .playhead-line { position: absolute; left: 10px; width: 2px; height: 100%; background: #ffffff; pointer-events: none; }
+        .marker-in { position: absolute; top: 0; bottom: 0; width: 4px; background: #10b981; z-index: 35; left: 45px; cursor: ew-resize; }
+        .marker-out { position: absolute; top: 0; bottom: 0; width: 4px; background: #fbbf24; z-index: 35; left: 500px; cursor: ew-resize; }
+        .clip-block { position: absolute; height: 90%; top: 5%; background: linear-gradient(135deg, #2563eb, #3b82f6); border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 10px; z-index: 20; color: white; cursor: grab; }
+        .clip-block.image { background: linear-gradient(135deg, #d97706, #f59e0b); }
+        .clip-block.audio { background: linear-gradient(135deg, #059669, #10b981); }
+        .clip-block.text { background: linear-gradient(135deg, #7c3aed, #8b5cf6); }
         .tab-menu { display: flex; background: var(--panel); overflow-x: auto; border-bottom: 1px solid #333; }
-        .tab-btn { padding: 12px 16px; font-size: 12px; color: #a1a1aa; cursor: pointer; white-space: nowrap; transition: 0.2s; }
+        .tab-btn { padding: 12px 16px; font-size: 12px; color: #a1a1aa; cursor: pointer; }
         .tab-btn.active { color: white; border-bottom: 2px solid var(--neon); background: rgba(59, 130, 246, 0.1); }
         .tab-content { flex: 1; padding: 12px; display: none; flex-direction: column; gap: 8px; overflow-y: auto; }
         .tab-content.active { display: flex; }
-
-        .btn { background: #27272a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; font-size: 11px; text-align: center; cursor: pointer; font-weight: bold; transition: 0.2s; }
-        .btn:hover { background: #333; }
-        .btn.primary { background: var(--neon); border: none; }
-        .btn.primary:hover { background: #2563eb; }
-        .btn.danger { background: #ef4444; border: none; }
-        .btn.warning { background: var(--golden); color: black; border: none; }
-        select, input[type="text"], input[type="color"], textarea { background: #18181c; border: 1px solid #333; color: white; padding: 6px; border-radius: 6px; font-size: 11px; width: 100%; box-sizing: border-box; outline: none; }
-        select:focus, input[type="text"]:focus, textarea:focus { border-color: var(--neon); }
-        input[type="range"] { width: 100%; accent-color: var(--neon); margin: 2px 0; }
-        label { font-size: 10px; color: #aaa; display: block; margin-top: 2px; font-weight: 500; }
-        
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
-        #hidden-media-container { display: none; }
-        
-        .project-list { display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; }
-        .project-item { background: #18181c; padding: 8px; border-radius: 6px; border: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
-
-        .collage-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin-top: 8px; }
-        .collage-card { background: #000; border: 2px solid #333; border-radius: 6px; cursor: pointer; overflow: hidden; transition: 0.2s; text-align: center; }
-        .collage-card:hover { border-color: #10b981; transform: scale(1.02); }
-        .collage-card img { width: 100%; height: 75px; object-fit: cover; display: block; }
-        .collage-title { font-size: 9px; padding: 5px; color: #ccc; font-weight: bold; line-height: 1.2; }
-
-        .panel-section { background: #121216; padding: 10px; border-radius: 6px; border: 1px solid #27272a; margin-bottom: 4px; }
-        .section-title { font-size: 10px; font-weight: bold; color: var(--neon); text-transform: uppercase; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
-        .section-title.golden { color: var(--golden); }
-
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        @keyframes pulse-border { 0% { border-color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.2); } 50% { border-color: #f87171; box-shadow: 0 0 30px rgba(239,68,68,0.8); } 100% { border-color: #ef4444; box-shadow: 0 0 10px rgba(239,68,68,0.2); } }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .btn { background: #27272a; border: 1px solid #444; color: white; padding: 10px; border-radius: 6px; font-size: 11px; text-align: center; cursor: pointer; font-weight: bold; }
+        .btn.primary { background: var(--neon); }
+        .btn.danger { background: #ef4444; }
     </style>
 </head>
 <body>
-
     <div class="app-header">
-        <div style="display: flex; align-items: center; gap: 15px;">
-            <span><i class="fa-solid fa-crown" style="color: #fbbf24;"></i> CapacitiumX V47 (Master Definitiva)</span>
-            <div class="autosave-badge" id="saveIndicator"><i class="fa-solid fa-database"></i> DB Lista</div>
-        </div>
-        <button class="btn-save" id="btnExport" onclick="exportVideo()"><i class="fa-solid fa-rocket"></i> EXPORTAR EN SEGUNDO PLANO</button>
+        <span>CapacitiumX Studio V47 - Master Definitiva</span>
+        <button class="btn-save" id="btnExport" onclick="exportVideo()">EXPORTAR</button>
     </div>
-
     <div class="preview-area">
-        <div class="render-overlay" id="renderOverlay">
-            <i class="fa-solid fa-gear"></i>
-            <span id="renderStatus">RENDERIZANDO VIDEO...</span>
-        </div>
-        
-        <div class="status-rec" id="recBadge"><i class="fa-solid fa-microphone"></i> GRABANDO...</div>
-
-        <div class="live-director-panel" id="liveDirectorUI">
-            <span style="color:white; font-size: 12px; font-weight: bold; margin-bottom: 5px;"><i class="fa-solid fa-circle-dot" style="color:#ef4444;"></i> MODO DIRECTOR EN VIVO</span>
-            <span style="color:#aaa; font-size: 10px; text-align:center; max-width: 250px;">Presiona la barra espaciadora para avanzar a la siguiente foto al ritmo de tu voz.</span>
-            <button class="live-director-btn" onclick="triggerNextLiveImage()"><i class="fa-solid fa-forward-step"></i> SIGUIENTE FOTO [ESPACIO]</button>
-        </div>
-
         <canvas id="mainCanvas"></canvas>
-        <video id="hiddenCam" autoplay playsinline style="display:none;" muted></video>
-        <div id="hidden-media-container"></div>
+        <div class="status-rec" id="recBadge"><i class="fa-solid fa-microphone"></i> GRABANDO...</div>
     </div>
-
     <div class="timeline-editor">
         <div class="timeline-toolbar">
-            <i class="fa-solid fa-play action-btn" id="btnPlay" onclick="togglePlayback()" title="Reproducir/Pausar"></i>
-            <i class="fa-solid fa-backward action-btn" onclick="resetPlayhead()" title="Ir al Inicio"></i>
-            <div style="width: 1px; height: 15px; background: #555; margin: 0 10px;"></div>
-            
-            <i class="fa-solid fa-scissors action-btn" onclick="splitSelectedClip()" title="Corte Quirúrgico (Tijeras)" style="color: #f59e0b;"></i>
-            <i class="fa-solid fa-copy action-btn" onclick="duplicateSelectedClip()" title="Duplicar Capa"></i>
-            <i class="fa-solid fa-trash action-btn" onclick="deleteSelectedClip()" title="Eliminar Capa" style="color: #ef4444;"></i>
-            <span id="timecode" style="margin-left: auto; font-family: monospace; color: #10b981;">00:00.0</span>
+            <i class="fa-solid fa-play action-btn" id="btnPlay" onclick="togglePlayback()"></i>
+            <span id="timecode" style="margin-left: auto; color: #10b981;">00:00.0</span>
         </div>
-        
         <div class="tracks-container" id="timelineScroll">
-            <div class="export-zone" id="exportZone"></div>
             <div class="marker-in" id="markerIn"></div>
             <div class="marker-out" id="markerOut"></div>
-
-            <div class="playhead-container" id="playhead">
-                <div class="playhead-head"></div>
+            <div class="playhead-container" id="playhead" onmousedown="startDragPlayhead(event)">
                 <div class="playhead-line"></div>
             </div>
-            
-            <div class="track" id="videoTrack"><div class="track-label"><i class="fa-solid fa-video"></i> Vid</div></div>
-            <div class="track" id="imageTrack"><div class="track-label"><i class="fa-solid fa-image"></i> Img</div></div>
-            <div class="track" id="textTrack"><div class="track-label"><i class="fa-solid fa-font"></i> Txt</div></div>
-            <div class="track" id="audioTrack"><div class="track-label"><i class="fa-solid fa-microphone"></i> Voz</div></div>
+            <div class="track" id="imageTrack"><div class="track-label">Img</div></div>
+            <div class="track" id="textTrack"><div class="track-label">Txt</div></div>
+            <div class="track" id="audioTrack"><div class="track-label">Voz</div></div>
         </div>
     </div>
-
     <div class="control-panel">
-        <div class="blocker-panel" id="panelBlocker"></div>
         <div class="tab-menu">
-            <div class="tab-btn active" onclick="switchTab('media')"><i class="fa-solid fa-folder-open"></i> Medios & Voz</div>
-            <div class="tab-btn" onclick="switchTab('fx')"><i class="fa-solid fa-font"></i> Texto Pro</div>
-            <div class="tab-btn" onclick="switchTab('pro-vfx')"><i class="fa-solid fa-wand-magic-sparkles"></i> 50x50 VFX</div>
-            <div class="tab-btn" onclick="switchTab('thumbs')"><i class="fa-solid fa-image"></i> Miniaturas</div>
-            <div class="tab-btn" onclick="switchTab('projects')"><i class="fa-solid fa-database"></i> DB Master</div>
+            <div class="tab-btn active" onclick="switchTab('media', this)">Medios</div>
         </div>
-
         <div id="media" class="tab-content active">
-            <div class="panel-section">
-                <div class="section-title"><i class="fa-solid fa-cloud-arrow-up"></i> Importar Fotos a la Línea de Tiempo</div>
-                <div class="btn primary" onclick="document.getElementById('fileUpload').click()"><i class="fa-solid fa-plus"></i> Importar Múltiples Fotos/Videos Seguidos</div>
-                <input type="file" id="fileUpload" accept="image/*,video/*" multiple style="display:none;" onchange="addMediaToTimeline(event)">
-            </div>
-            
-            <div class="panel-section" style="border-color: #ef4444;">
-                <div class="section-title" style="color: #ef4444;"><i class="fa-solid fa-microphone"></i> 1. Narración Continua (Modo Director)</div>
-                <p style="font-size: 9px; color: #aaa; margin: 0 0 6px 0;">Colócate en la primera foto. Graba de corrido. Pulsa [Espacio] para avanzar las fotos secuencialmente según tu voz.</p>
-                <button class="btn danger" style="width:100%;" id="btnRecVoice" onclick="toggleVoiceRecord()"><i class="fa-solid fa-circle-dot"></i> Iniciar Narración Directa Continua</button>
-            </div>
-
-            <div class="panel-section" style="border-color: #8b5cf6;">
-                <div class="section-title" style="color: #8b5cf6;"><i class="fa-solid fa-robot"></i> 2. Sintetizador Texto a Voz (20 Voces IA)</div>
-                <p style="font-size: 9px; color: #aaa; margin: 0 0 6px 0;">Sin contraseñas. Escribe 5,000 palabras y conviértelas en audio narrativo gratis.</p>
-                <label>Selecciona una Voz de IA (Locutores Extraídos)</label>
-                <select id="ttsVoiceSelect" style="margin-bottom: 5px;">
-                    <option value="0">Cargando Voces...</option>
-                </select>
-                <textarea id="ttsText" rows="3" placeholder="Pega aquí tu guion masivo..."></textarea>
-                <button class="btn" style="background:#8b5cf6; width:100%; border:none; margin-top:5px;" onclick="generateTTSBlock()"><i class="fa-solid fa-brain"></i> Crear Audio IA</button>
-            </div>
-
-            <div class="panel-section">
-                <div class="section-title"><i class="fa-solid fa-crop"></i> Formato de Renderizado</div>
-                <div class="grid-2" style="margin-top: 4px;">
-                    <button class="btn" id="fmt169" onclick="changeCanvasFormat('169')" style="border: 2px solid var(--neon);">Largo (1280x720)</button>
-                    <button class="btn" id="fmt916" onclick="changeCanvasFormat('916')">Shorts (720x1280)</button>
-                </div>
-            </div>
-        </div>
-
-        <div id="fx" class="tab-content">
-            <div class="panel-section" style="border-color: var(--golden);">
-                <div class="section-title golden"><i class="fa-solid fa-pen-to-square"></i> Typografía y Efectos de Letra</div>
-                <input type="text" id="overlayText" placeholder="Selecciona un texto morado o escribe aquí..." style="margin-bottom: 5px;" oninput="liveUpdateText()">
-                
-                <div class="grid-3">
-                    <div>
-                        <label>Fuente Pro</label>
-                        <select id="textFont" onchange="liveUpdateText()">
-                            <option value="sans-serif">Modern Sans</option>
-                            <option value="Impact">Impacto Titular</option>
-                            <option value="Georgia, serif">Periódico (News)</option>
-                            <option value="Courier New">Retro Code</option>
-                        </select>
-                    </div>
-                    <div><label>Color Letra</label><input type="color" id="overlayColor" value="#ffff00" oninput="liveUpdateText()"></div>
-                    <div><label>Color Fondo/Borde</label><input type="color" id="overlayBg" value="#000000" oninput="liveUpdateText()"></div>
-                </div>
-                
-                <div class="grid-2" style="margin-top: 6px; align-items: center;">
-                    <div>
-                        <label>Estilo FX Visual</label>
-                        <select id="useBgOption" onchange="liveUpdateText()">
-                            <option value="transparent">Limpio / Sombra Dura</option>
-                            <option value="color">Caja de Fondo</option>
-                            <option value="neon">Brillo Luz de Neón</option>
-                            <option value="outline">Letras Acotadas (Borde)</option>
-                            <option value="diagonal">Texto Diagonal 45°</option>
-                            <option value="letterbox">Cine Letterbox</option>
-                            <option value="watermark">Marca de Agua</option>
-                        </select>
-                    </div>
-                    <button class="btn warning" onclick="addTextToTimeline()" style="margin-top: 12px;"><i class="fa-solid fa-plus"></i> Inyectar Texto</button>
-                </div>
-            </div>
-            
-            <div class="grid-2">
-                <button class="btn primary" onclick="document.getElementById('stickerUpload').click()"><i class="fa-solid fa-clone"></i> Imagen / Video (PiP)</button>
-                <div>
-                    <label>Tamaño Texto/PiP</label>
-                    <input type="range" id="elementSize" min="10" max="800" value="80" oninput="updateSelectedOverlaySize()">
-                </div>
-            </div>
-            <input type="file" id="stickerUpload" accept="image/*,video/*" multiple style="display:none;" onchange="addStickerToTimeline(event)">
-        </div>
-
-        <div id="pro-vfx" class="tab-content">
-            <div class="panel-section" style="border-color: #10b981;">
-                <div class="section-title" style="color: #10b981;"><i class="fa-solid fa-wand-magic-sparkles"></i> 50x50 Filtros y Animaciones</div>
-                <div class="grid-2">
-                    <div><label>Color Grading (50)</label><select id="clipFilter" onchange="applyVFXSettingsToClip()"></select></div>
-                    <div><label>Transiciones (50)</label><select id="clipAnim" onchange="applyVFXSettingsToClip()"></select></div>
-                </div>
-            </div>
-            <div class="panel-section">
-                <div class="section-title"><i class="fa-solid fa-sliders"></i> Taller de Colorimetría</div>
-                <div class="grid-2">
-                    <div><label id="lblBrightness">Luz: 100%</label><input type="range" id="clipBrightness" min="30" max="250" value="100" oninput="applyManualColorToClip()"></div>
-                    <div><label id="lblContrast">Contraste: 100%</label><input type="range" id="clipContrast" min="30" max="250" value="100" oninput="applyManualColorToClip()"></div>
-                </div>
-                <div class="grid-2">
-                    <div><label id="lblSaturation">Color: 100%</label><input type="range" id="clipSaturation" min="0" max="300" value="100" oninput="applyManualColorToClip()"></div>
-                    <div><label id="lblBlur">Desenfocar: 0px</label><input type="range" id="clipBlur" min="0" max="15" value="0" oninput="applyManualColorToClip()"></div>
-                </div>
-            </div>
-            <div class="grid-2">
-                <div class="panel-section" style="margin-bottom:0;">
-                    <div class="section-title"><i class="fa-solid fa-gauge-high"></i> Speed Ramping</div>
-                    <label id="lblSpeed">Velocidad: 1.0x</label>
-                    <input type="range" id="clipSpeed" min="5" max="40" value="10" step="5" oninput="applySpeedToClip()">
-                </div>
-                <div class="panel-section" style="margin-bottom:0;">
-                    <div class="section-title"><i class="fa-solid fa-ghost"></i> Chroma Key</div>
-                    <div style="display:flex; align-items:center; gap:8px; margin-top:2px;">
-                        <input type="checkbox" id="clipChroma" onchange="applyChromaToClip()" style="width:auto; transform:scale(1.2);">
-                        <label style="margin-top:0; cursor:pointer;" for="clipChroma">Quitar Verde</label>
-                    </div>
-                    <label id="lblChromaTol">Tolerancia: 60</label>
-                    <input type="range" id="clipChromaTol" min="10" max="150" value="60" oninput="applyChromaToClip()">
-                </div>
-            </div>
-        </div>
-
-        <div id="thumbs" class="tab-content">
-            <div style="background: #121216; padding: 12px; border-radius: 6px; border: 1px solid var(--golden); text-align: center;">
-                <i class="fa-brands fa-youtube" style="font-size: 24px; color: #ef4444; margin-bottom: 5px;"></i>
-                <h3 style="margin: 0 0 4px 0; font-size: 13px;">Generador de 10 Miniaturas Inteligentes</h3>
-                <p style="font-size: 10px; color: #aaa; margin: 0 0 10px 0;">Algoritmo de composición fotográfica para YouTube.</p>
-                <input type="text" id="thumbTopic" placeholder="Tema Opcional (Dejar vacío para Auto)" style="margin-bottom: 8px; font-weight: bold; text-align: center; max-width: 400px;">
-                <div class="grid-2" style="max-width:400px; margin: 0 auto;">
-                    <button class="btn warning" onclick="generateAutoCollages()"><i class="fa-solid fa-wand-magic-sparkles"></i> Generar 10 Opciones Auto</button>
-                    <button class="btn primary" onclick="generateThumbnail('manual')"><i class="fa-solid fa-camera"></i> Tomar Foto</button>
-                </div>
-                <div id="collageResults" class="collage-container" style="display: none;"></div>
-            </div>
-        </div>
-
-        <div id="projects" class="tab-content">
-            <div class="panel-section">
-                <div class="section-title" style="color: #10b981;"><i class="fa-solid fa-floppy-disk"></i> Bóveda de Proyectos</div>
-                <div style="display: flex; gap: 6px; margin-top: 4px;">
-                    <input type="text" id="projectName" placeholder="Nombre..." value="Proyecto 1">
-                    <button class="btn primary" onclick="forceSaveProject()"><i class="fa-solid fa-save"></i> Guardar DB</button>
-                </div>
-            </div>
-            <h4 style="font-size: 11px; border-bottom: 1px solid #333; padding-bottom: 4px; margin: 8px 0 4px 0;">Copias Recuperables</h4>
-            <div class="project-list" id="projectListDisplay"></div>
-            <button class="btn danger" onclick="clearProjects()" style="margin-top: 8px; width: 100%;"><i class="fa-solid fa-trash"></i> Formatear Bóveda DB</button>
+            <button class="btn primary" onclick="document.getElementById('fileUpload').click()">Importar Medios</button>
+            <input type="file" id="fileUpload" accept="image/*,video/*" multiple style="display:none;" onchange="addMediaToTimeline(event)">
+            <button class="btn danger" id="btnRecVoice" onclick="toggleVoiceRecord()">Grabar Voz (Mic)</button>
         </div>
     </div>
 
     <script>
-        // --- ESTADO Y VARIABLES GLOBALES ---
-        let db, audioCtx, audioMixer, projectClips = [], selectedClipEl = null, isPlaying = false, playInterval, playheadX = 45;
-        const pixelsPerSecond = 50, canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
+        let projectClips = [], playheadX = 45, isPlaying = false, playInterval, isRecordingVoice = false, mediaRecorder, voiceChunks = [];
+        const canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
         canvas.width = 1280; canvas.height = 720;
 
-        // INICIALIZACIÓN
-        window.addEventListener('DOMContentLoaded', () => {
-            const req = indexedDB.open("CapacitiumX_StudioDB_V41", 1);
-            req.onupgradeneeded = e => e.target.result.createObjectStore('projects', { keyPath: 'id' });
-            req.onsuccess = e => { db = e.target.result; };
-        });
-
-        // 1. IMPORTACIÓN Y AUTOMATIZACIÓN DE TEXTO
         function addMediaToTimeline(event) {
             const files = event.target.files;
             let currentPx = 45;
             for (let i = 0; i < files.length; i++) {
                 const id = Date.now() + i;
-                const url = URL.createObjectURL(files[i]);
-                const img = new Image(); img.src = url;
-                
-                // UI Imagen
-                const uiImg = document.createElement('div');
-                uiImg.className = 'clip-block image';
-                uiImg.style.left = currentPx + 'px';
-                uiImg.style.width = '300px';
-                uiImg.innerText = files[i].name;
-                uiImg.setAttribute('data-id', id);
-                uiImg.onmousedown = (e) => { selectedClipEl = e.currentTarget; };
-                document.getElementById('imageTrack').appendChild(uiImg);
-
-                // UI Texto
-                const uiTxt = document.createElement('div');
-                uiTxt.className = 'clip-block text';
-                uiTxt.style.left = currentPx + 'px';
-                uiTxt.style.width = '300px';
-                uiTxt.innerText = files[i].name;
-                uiTxt.setAttribute('data-id', id+1000);
-                document.getElementById('textTrack').appendChild(uiTxt);
-                
+                const img = new Image(); img.src = URL.createObjectURL(files[i]);
                 projectClips.push({ id, type: 'image', startPx: currentPx, widthPx: 300, img, content: files[i].name });
-                projectClips.push({ id: id+1000, type: 'text', startPx: currentPx, widthPx: 300, content: files[i].name });
+                projectClips.push({ id: id+1, type: 'text', startPx: currentPx, widthPx: 300, content: files[i].name });
                 
+                const ui = document.createElement('div'); ui.className = 'clip-block image'; ui.style.left = currentPx + 'px'; ui.innerText = files[i].name;
+                document.getElementById('imageTrack').appendChild(ui);
+                const txt = document.createElement('div'); txt.className = 'clip-block text'; txt.style.left = currentPx + 'px'; txt.innerText = files[i].name;
+                document.getElementById('textTrack').appendChild(txt);
                 currentPx += 310;
             }
         }
 
-        // 2. REPRODUCTOR Y CABEZAL
-        function togglePlayback() {
-            const btn = document.getElementById('btnPlay');
-            if (isPlaying) { clearInterval(playInterval); isPlaying = false; btn.className = "fa-solid fa-play action-btn"; }
-            else { isPlaying = true; btn.className = "fa-solid fa-pause action-btn"; playInterval = setInterval(() => { playheadX += 2; document.getElementById('playhead').style.left = playheadX + 'px'; document.getElementById('timelineScroll').scrollLeft = playheadX - 100; }, 40); }
-        }
-
-        function startDragPlayhead(e) { document.onmousemove = (me) => { playheadX = Math.max(45, me.clientX); document.getElementById('playhead').style.left = playheadX + 'px'; }; document.onmouseup = () => document.onmousemove = null; }
-        function resetPlayhead() { playheadX = 45; document.getElementById('playhead').style.left = '45px'; }
-
-        // 3. MODO DIRECTOR (GRABACIÓN)
         async function toggleVoiceRecord() {
             const btn = document.getElementById('btnRecVoice');
             if(!isRecordingVoice) {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                const recorder = new MediaRecorder(stream);
-                let chunks = [];
-                recorder.ondataavailable = e => chunks.push(e.data);
-                recorder.onstop = () => {
-                    const audio = new Audio(URL.createObjectURL(new Blob(chunks)));
+                mediaRecorder = new MediaRecorder(stream);
+                voiceChunks = [];
+                mediaRecorder.ondataavailable = e => voiceChunks.push(e.data);
+                mediaRecorder.onstop = () => {
+                    const audio = new Audio(URL.createObjectURL(new Blob(voiceChunks)));
                     projectClips.push({ type: 'audio', startPx: playheadX, widthPx: 300, domElement: audio });
-                    const ui = document.createElement('div'); ui.className = 'clip-block audio'; ui.style.left = playheadX + 'px'; ui.innerText = "Voz Grabada";
+                    const ui = document.createElement('div'); ui.className = 'clip-block audio'; ui.style.left = playheadX + 'px'; ui.innerText = "Voz Off";
                     document.getElementById('audioTrack').appendChild(ui);
                 };
-                recorder.start(); isRecordingVoice = true; btn.innerText = "Detener"; document.getElementById('recBadge').style.display = 'block';
+                mediaRecorder.start(); isRecordingVoice = true; btn.innerText = "Detener"; document.getElementById('recBadge').style.display = 'block';
             } else { mediaRecorder.stop(); isRecordingVoice = false; btn.innerText = "Grabar Voz (Mic)"; document.getElementById('recBadge').style.display = 'none'; }
         }
 
-        // 4. RENDERIZADO
+        function togglePlayback() {
+            const btn = document.getElementById('btnPlay');
+            if(isPlaying) { clearInterval(playInterval); isPlaying = false; btn.className = "fa-solid fa-play"; }
+            else { isPlaying = true; btn.className = "fa-solid fa-pause"; playInterval = setInterval(() => { playheadX += 5; document.getElementById('playhead').style.left = playheadX + 'px'; }, 40); }
+        }
+
         function renderLoop() {
             ctx.fillStyle = "#050507"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             projectClips.forEach(o => {
-                if (playheadX >= o.startPx && playheadX <= o.startPx + o.widthPx) {
-                    if (o.type === 'image' && o.img && o.img.complete) ctx.drawImage(o.img, 0, 0, canvas.width, canvas.height);
-                    if (o.type === 'text') { ctx.fillStyle="white"; ctx.font="30px Arial"; ctx.textAlign="center"; ctx.fillText(o.content, canvas.width/2, canvas.height-50); }
+                if(playheadX >= o.startPx && playheadX <= o.startPx + o.widthPx) {
+                    if(o.type === 'image' && o.img.complete) ctx.drawImage(o.img, 0, 0, canvas.width, canvas.height);
+                    if(o.type === 'text') { ctx.fillStyle="white"; ctx.font="40px Arial"; ctx.textAlign="center"; ctx.fillText(o.content, canvas.width/2, canvas.height-50); }
                 }
             });
             requestAnimationFrame(renderLoop);
         }
         renderLoop();
 
-        // FUNCIONES DE APOYO
-        function switchTab(id) { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.getElementById(id).classList.add('active'); }
-        function exportVideo() { document.getElementById('renderOverlay').style.display = 'flex'; }
+        function switchTab(id, btn) { document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active')); document.getElementById(id).classList.add('active'); btn.classList.add('active'); }
+        function exportVideo() { alert("Procesando..."); }
     </script>
 </body>
 </html>
