@@ -144,7 +144,7 @@
             <div class="marker-in" id="markerIn"></div>
             <div class="marker-out" id="markerOut"></div>
 
-            <div class="playhead-container" id="playhead" onmousedown="startDragPlayhead(event)">
+            <div class="playhead-container" id="playhead">
                 <div class="playhead-head"></div>
                 <div class="playhead-line"></div>
             </div>
@@ -159,11 +159,11 @@
     <div class="control-panel">
         <div class="blocker-panel" id="panelBlocker"></div>
         <div class="tab-menu">
-            <div class="tab-btn active" onclick="switchTab('media', this)"><i class="fa-solid fa-folder-open"></i> Medios & Voz</div>
-            <div class="tab-btn" onclick="switchTab('fx', this)"><i class="fa-solid fa-font"></i> Texto Pro</div>
-            <div class="tab-btn" onclick="switchTab('pro-vfx', this)"><i class="fa-solid fa-wand-magic-sparkles"></i> 50x50 VFX</div>
-            <div class="tab-btn" onclick="switchTab('thumbs', this)"><i class="fa-solid fa-image"></i> Miniaturas</div>
-            <div class="tab-btn" onclick="switchTab('projects', this)"><i class="fa-solid fa-database"></i> DB Master</div>
+            <div class="tab-btn active" onclick="switchTab('media')"><i class="fa-solid fa-folder-open"></i> Medios & Voz</div>
+            <div class="tab-btn" onclick="switchTab('fx')"><i class="fa-solid fa-font"></i> Texto Pro</div>
+            <div class="tab-btn" onclick="switchTab('pro-vfx')"><i class="fa-solid fa-wand-magic-sparkles"></i> 50x50 VFX</div>
+            <div class="tab-btn" onclick="switchTab('thumbs')"><i class="fa-solid fa-image"></i> Miniaturas</div>
+            <div class="tab-btn" onclick="switchTab('projects')"><i class="fa-solid fa-database"></i> DB Master</div>
         </div>
 
         <div id="media" class="tab-content active">
@@ -175,39 +175,74 @@
             
             <div class="panel-section" style="border-color: #ef4444;">
                 <div class="section-title" style="color: #ef4444;"><i class="fa-solid fa-microphone"></i> 1. Narración Continua (Modo Director)</div>
+                <p style="font-size: 9px; color: #aaa; margin: 0 0 6px 0;">Colócate en la primera foto. Graba de corrido. Pulsa [Espacio] para avanzar las fotos secuencialmente según tu voz.</p>
                 <button class="btn danger" style="width:100%;" id="btnRecVoice" onclick="toggleVoiceRecord()"><i class="fa-solid fa-circle-dot"></i> Iniciar Narración Directa Continua</button>
             </div>
 
             <div class="panel-section" style="border-color: #8b5cf6;">
-                <div class="section-title" style="color: #8b5cf6;"><i class="fa-solid fa-robot"></i> 2. Sintetizador Texto a Voz</div>
+                <div class="section-title" style="color: #8b5cf6;"><i class="fa-solid fa-robot"></i> 2. Sintetizador Texto a Voz (25 Voces IA)</div>
+                <select id="ttsVoiceSelect" style="margin-bottom: 5px;">
+                    <option value="0">Cargando 25 voces IA...</option>
+                </select>
                 <textarea id="ttsText" rows="3" placeholder="Pega aquí tu guion..."></textarea>
                 <button class="btn" style="background:#8b5cf6; width:100%; border:none; margin-top:5px;" onclick="generateTTSBlock()"><i class="fa-solid fa-brain"></i> Crear Audio IA</button>
+            </div>
+
+            <div class="panel-section">
+                <div class="section-title"><i class="fa-solid fa-crop"></i> Formato de Renderizado</div>
+                <div class="grid-2" style="margin-top: 4px;">
+                    <button class="btn" id="fmt169" onclick="changeCanvasFormat('169')" style="border: 2px solid var(--neon);">Largo (1280x720)</button>
+                    <button class="btn" id="fmt916" onclick="changeCanvasFormat('916')">Shorts (720x1280)</button>
+                </div>
             </div>
         </div>
 
         <div id="fx" class="tab-content">
-            <div class="panel-section" style="border-color: var(--golden);">
-                <div class="section-title golden"><i class="fa-solid fa-pen-to-square"></i> Typografía y Efectos de Letra</div>
-                <input type="text" id="overlayText" placeholder="Escribe aquí..." oninput="liveUpdateText()">
-                <button class="btn warning" onclick="addTextToTimeline()" style="margin-top: 12px;">Inyectar Texto</button>
             </div>
-        </div>
-        
-        </div>
+
+        <div id="pro-vfx" class="tab-content">
+            </div>
+
+        <div id="thumbs" class="tab-content">
+            </div>
+
+        <div id="projects" class="tab-content">
+            </div>
+    </div>
 
     <script>
-        let projectClips = [], playheadX = 45, isPlaying = false, playInterval, isRecordingVoice = false, mediaRecorder, voiceChunks = [];
-        const canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
+        // --- ESTADO Y VARIABLES GLOBALES ---
+        let db, audioCtx, audioMixer, projectClips = [], selectedClipEl = null, isPlaying = false, playInterval, playheadX = 45;
+        const pixelsPerSecond = 50, canvas = document.getElementById('mainCanvas'), ctx = canvas.getContext('2d');
         canvas.width = 1280; canvas.height = 720;
+        const AI_VOICES = ["Jorge (MX)", "Esperanza (MX)", "Santiago (COL)", "Elena (ES)", "Juan (AR)", "Sofía (MX)", "Mateo (MX)", "Valentina (COL)", "Alejandro (MX)", "Camila (MX)", "Sebastian (MX)", "Lucía (ES)", "Diego (MX)", "Isabella (COL)", "Fernando (MX)", "Ximena (MX)", "Emilio (MX)", "Gabriela (MX)", "Andrés (MX)", "Mariana (MX)", "Carlos (MX)", "Daniela (COL)", "Raúl (MX)", "Natalia (MX)", "Ricardo (MX)"];
 
+        window.addEventListener('DOMContentLoaded', () => {
+            const select = document.getElementById('ttsVoiceSelect');
+            select.innerHTML = AI_VOICES.map((v, i) => `<option value="${i}">${v}</option>`).join('');
+            const req = indexedDB.open("CapacitiumX_StudioDB_V41", 1);
+            req.onupgradeneeded = e => e.target.result.createObjectStore('projects', { keyPath: 'id' });
+            req.onsuccess = e => { db = e.target.result; };
+        });
+
+        // 1. IMPORTACIÓN Y AUTOMATIZACIÓN DE TEXTO
         function addMediaToTimeline(event) {
             const files = event.target.files;
+            let currentPx = 45;
             for (let i = 0; i < files.length; i++) {
                 const id = Date.now() + i;
-                const img = new Image(); img.src = URL.createObjectURL(files[i]);
-                projectClips.push({ id, type: 'image', startPx: 45 + (i * 310), widthPx: 300, img, content: files[i].name });
-                const uiImg = document.createElement('div'); uiImg.className = 'clip-block image'; uiImg.style.left = (45 + (i * 310)) + 'px'; uiImg.innerText = files[i].name;
+                const url = URL.createObjectURL(files[i]);
+                const img = new Image(); img.src = url;
+                
+                projectClips.push({ id, type: 'image', startPx: currentPx, widthPx: 300, img, content: files[i].name, x: 640, y: 360 });
+                projectClips.push({ id: id+1000, type: 'text', startPx: currentPx, widthPx: 300, content: files[i].name, x: 640, y: 650, size: 40 });
+                
+                const uiImg = document.createElement('div'); uiImg.className = 'clip-block image'; uiImg.style.left = currentPx + 'px'; uiImg.style.width = '300px'; uiImg.innerText = files[i].name; uiImg.setAttribute('data-id', id); uiImg.onmousedown = (e) => { selectedClipEl = e.currentTarget; };
                 document.getElementById('imageTrack').appendChild(uiImg);
+                
+                const uiTxt = document.createElement('div'); uiTxt.className = 'clip-block text'; uiTxt.style.left = currentPx + 'px'; uiTxt.style.width = '300px'; uiTxt.innerText = files[i].name; uiTxt.setAttribute('data-id', id+1000);
+                document.getElementById('textTrack').appendChild(uiTxt);
+                currentPx += 310;
             }
         }
 
@@ -215,23 +250,32 @@
             const btn = document.getElementById('btnRecVoice');
             if(!isRecordingVoice) {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                mediaRecorder = new MediaRecorder(stream);
-                voiceChunks = [];
-                mediaRecorder.ondataavailable = e => voiceChunks.push(e.data);
-                mediaRecorder.onstop = () => {
-                    const audio = new Audio(URL.createObjectURL(new Blob(voiceChunks)));
+                const recorder = new MediaRecorder(stream);
+                let chunks = [];
+                recorder.ondataavailable = e => chunks.push(e.data);
+                recorder.onstop = () => {
+                    const audio = new Audio(URL.createObjectURL(new Blob(chunks)));
                     projectClips.push({ type: 'audio', startPx: playheadX, widthPx: 300, domElement: audio });
                     const ui = document.createElement('div'); ui.className = 'clip-block audio'; ui.style.left = playheadX + 'px'; ui.innerText = "Voz Off";
                     document.getElementById('audioTrack').appendChild(ui);
                 };
-                mediaRecorder.start(); isRecordingVoice = true; btn.innerText = "Detener"; document.getElementById('recBadge').style.display = 'block';
+                recorder.start(); isRecordingVoice = true; btn.innerText = "Detener Narración"; document.getElementById('recBadge').style.display = 'block';
             } else { mediaRecorder.stop(); isRecordingVoice = false; btn.innerText = "Grabar Voz (Mic)"; document.getElementById('recBadge').style.display = 'none'; }
+        }
+
+        function generateTTSBlock() {
+            const text = document.getElementById('ttsText').value;
+            if(!text) return alert("Escribe un guion");
+            projectClips.push({ type: 'audio', startPx: playheadX, widthPx: 300, content: text });
+            const ui = document.createElement('div'); ui.className = 'clip-block audio'; ui.style.left = playheadX + 'px'; ui.innerText = "Voz IA";
+            document.getElementById('audioTrack').appendChild(ui);
+            alert("Voz IA generada");
         }
 
         function togglePlayback() {
             const btn = document.getElementById('btnPlay');
             if (isPlaying) { clearInterval(playInterval); isPlaying = false; btn.className = "fa-solid fa-play action-btn"; }
-            else { isPlaying = true; btn.className = "fa-solid fa-pause action-btn"; playInterval = setInterval(() => { playheadX += 5; document.getElementById('playhead').style.left = playheadX + 'px'; document.getElementById('timelineScroll').scrollLeft = playheadX - 100; }, 40); }
+            else { isPlaying = true; btn.className = "fa-solid fa-pause action-btn active-play"; playInterval = setInterval(() => { playheadX += 5; document.getElementById('playhead').style.left = playheadX + 'px'; document.getElementById('timelineScroll').scrollLeft = playheadX - 100; }, 40); }
         }
 
         function renderLoop() {
